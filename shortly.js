@@ -53,7 +53,7 @@ app.get('/create', isLoggedIn, function(req, res) {
 });
 
 app.get('/links', isLoggedIn, function(req, res) {
-  Links.reset().fetch().then(function(links) {
+  Links.query('where', 'userId', '=', req.session.userId).fetch().then(function(links) {
     res.status(200).send(links.models);
   });
 });
@@ -79,7 +79,8 @@ app.post('/links', isLoggedIn, function(req, res) {
         Links.create({
           url: uri,
           title: title,
-          baseUrl: req.headers.origin
+          baseUrl: req.headers.origin,
+          userId: req.session.userId
         })
         .then(function(newLink) {
           res.status(200).send(newLink);
@@ -108,6 +109,7 @@ app.post('/login', function (req, res) {
         if (matched) {
           req.session.loggedIn = true;
           req.session.username = loginInfo.username;
+          req.session.userId = user.attributes.id;
           res.redirect('/');
         } else {
           res.redirect('/login');
@@ -129,8 +131,6 @@ app.get('/login', function (req, res) {
 
 app.post('/signup', function (req, res) {
 
-  console.log('Body: ', req.body);
-
   new User({username: req.body.username}).fetch().then(function (user) {
     if (user) {
       res.status(409).send('User Already Exists');
@@ -143,6 +143,7 @@ app.post('/signup', function (req, res) {
       .then(function(newUser) {
         req.session.loggedIn = true;
         req.session.username = req.body.username;
+        req.session.userId = newUser.attributes.id;
         res.redirect('/');       
       });
     }
@@ -157,6 +158,7 @@ app.get('/logout', function(req, res) {
 
   req.session.loggedIn = false;
   delete req.session.username;
+  delete req.session.userId;
   res.redirect('/login');
 });
 
